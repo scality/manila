@@ -90,7 +90,10 @@ class ScalityShareDriver(driver.ShareDriver):
         :returns: tuple of (stdout, stderr) with command output
         """
         cmd = 'sudo scality-manila-utils %s' % command
-        return processutils.ssh_execute(self.ssh_pool.get(), cmd)
+        log.debug("Management execute: %s" % cmd)
+        with self.ssh_pool.item() as connection:
+            result = processutils.ssh_execute(connection, cmd)
+        return result
 
     def _location_from_id(self, share_id):
         """Format an export location from a share_id.

@@ -54,6 +54,8 @@ class ScalityShareDriver(driver.ShareDriver):
 
     ACCESS_NOT_FOUND = 12
 
+    HAS_GRANTS = 13
+
     # Driver version
     VERSION = '1.0'
 
@@ -172,6 +174,24 @@ class ScalityShareDriver(driver.ShareDriver):
 
             elif e.exit_code == self.EXPORT_NOT_FOUND:
                 msg = _("'%s' (%s) not found" % (share['name'], share['id']))
+                raise exception.InvalidShare(reason=msg)
+
+            else:
+                raise
+
+    def delete_share(self, context, share, share_server=None):
+        command = 'wipe %s' % share['id']
+
+        try:
+            self._management_call(command)
+
+        except processutils.ProcessExecutionError as e:
+            if e.exit_code == self.HAS_GRANTS:
+                msg = _("Unable to remove share with granted access")
+                raise exception.ShareBackendException(msg=msg)
+
+            elif e.exit_code == self.EXPORT_NOT_FOUND:
+                msg = _("Share '%s' not found" % share['id'])
                 raise exception.InvalidShare(reason=msg)
 
             else:

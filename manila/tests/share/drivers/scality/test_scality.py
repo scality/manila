@@ -166,6 +166,37 @@ class ScalityShareDriverTestCase(test.TestCase):
         self.assertRaises(processutils.ProcessExecutionError,
                           self.driver.deny_access, self.context, share, access)
 
+    @mock.patch.object(driver.ScalityShareDriver, '_management_call')
+    def test_delete_share_success(self, management_call):
+        share = fake_share.fake_share(share_proto='NFS')
+        expected_wipe_command = 'wipe %s' % share['id']
+
+        self.driver.delete_share(self.context, share)
+        management_call.assert_called_once_with(expected_wipe_command)
+
+    @mock.patch.object(driver.ScalityShareDriver, '_management_call')
+    def test_delete_share_failure(self, management_call):
+        share = fake_share.fake_share(share_proto='NFS')
+
+        # Share does not exist
+        management_call.side_effect = processutils.ProcessExecutionError(
+            exit_code=driver.ScalityShareDriver.EXPORT_NOT_FOUND
+        )
+        self.assertRaises(exception.InvalidShare, self.driver.delete_share,
+                          self.context, share)
+
+        # Share has existing grants
+        management_call.side_effect = processutils.ProcessExecutionError(
+            exit_code=driver.ScalityShareDriver.HAS_GRANTS
+        )
+        self.assertRaises(exception.ShareBackendException,
+                          self.driver.delete_share, self.context, share)
+
+        # Unhandled error code should have the exception re-raised
+        management_call.side_effect = processutils.ProcessExecutionError
+        self.assertRaises(processutils.ProcessExecutionError,
+                          self.driver.delete_share, self.context, share)
+
     def test_update_share_stats(self):
         # NFS support should be published
         self.driver.get_share_stats(refresh=True)

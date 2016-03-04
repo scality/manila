@@ -207,6 +207,17 @@ class ScalityShareDriverTestCase(test.TestCase):
         self.assertRaises(exception.ManilaException, drv.get_share_stats,
                           refresh=True)
 
+    def test_delete_share_when_share_not_found(self):
+        drv = driver.ScalityShareDriver(configuration=self.cfg)
+        share = fake_share.fake_share()
+        exc = exception.InvalidShare(reason=u"Unicode\u1234")
+        with mock.patch.object(drv, '_get_helper') as mock_get_helper:
+            mock_get_helper.return_value.delete_share.side_effect = exc
+            # assert that the exception has been caught.
+            self.assertIsNone(drv.delete_share(self.context, share))
+        mock_get_helper.return_value.delete_share.assert_called_once_with(
+            share)
+
 
 class NASHelperTestCase(test.TestCase):
 

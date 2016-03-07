@@ -22,6 +22,7 @@ from manila import exception
 from manila.i18n import _
 from manila.i18n import _LE
 from manila.i18n import _LI
+from manila.i18n import _LW
 from manila.share import driver
 from manila import utils
 
@@ -179,7 +180,10 @@ class ScalityShareDriver(driver.ShareDriver):
         self._get_helper(share).deny_access(share, access)
 
     def delete_share(self, context, share, share_server=None):
-        self._get_helper(share).delete_share(share)
+        try:
+            self._get_helper(share).delete_share(share)
+        except exception.InvalidShare as exc:
+            LOG.warning(_LW("Delete share failed with : %s"), exc)
 
     def create_share(self, context, share, share_server=None):
         return self._get_helper(share).create_share(share)
